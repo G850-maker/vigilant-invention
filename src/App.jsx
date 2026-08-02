@@ -192,7 +192,7 @@ function LandingPage({ onLaunch }) {
           >
             {[
               ["3s", "avg. generation"],
-              ["100%", "free while in beta"],
+              ["$7","per month,cancel anytime"],
               ["0", "templates reused"],
             ].map(([n, l]) => (
               <div key={l}>
