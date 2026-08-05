@@ -111,6 +111,23 @@ function LandingPage({ onLaunch }) {
         >
           Open the app
         </button>
+<a
+  href="https://buy.stripe.com/3cI28r1DO30Q1dIfANgfu00"
+  style={{
+    background: COLORS.stamp,
+    color: "#fff",
+    textDecoration: "none",
+    border: "none",
+    padding: "10px 20px",
+    borderRadius: 4,
+    fontFamily: "'Inter', sans-serif",
+    fontWeight: 600,
+    fontSize: 14,
+    marginLeft: 12,
+  }}
+>
+  Upgrade to Pro — $7/mo
+</a>
       </nav>
 
       {/* Hero */}
