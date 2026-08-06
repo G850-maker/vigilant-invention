@@ -126,7 +126,7 @@ function LandingPage({ onLaunch }) {
     marginLeft: 12,
   }}
 >
-  Upgrade to Pro — $7/mo
+  Subscribe — $7/mo
 </a>
       </nav>
 
