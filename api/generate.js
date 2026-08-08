@@ -1,13 +1,32 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { recipient, offer, tone } = req.body || {};
+  const { email, recipient, offer, tone } = req.body || {};
 
-  if (!recipient || !offer) {
-    return res.status(400).json({ error: "Missing recipient or offer" });
+  if (!email || !recipient || !offer) {
+    return res.status(400).json({ error: "Missing email, recipient, or offer" });
+  }
+
+  const { data: subscriber, error: lookupError } = await supabase
+    .from("subscribers")
+    .select("status")
+    .eq("email", email.toLowerCase())
+    .single();
+
+  if (lookupError || !subscriber || subscriber.status !== "active") {
+    return res.status(402).json({
+      error: "not_subscribed",
+      message: "This email isn't an active subscriber yet.",
+    });
   }
 
   const prompt = `Write a cold outreach email.

@@ -1,9 +1,12 @@
 import Stripe from "stripe";
+import { createClient } from "@supabase/supabase-js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-// Stripe needs the raw request body to verify the webhook signature,
-// so we disable Vercel's default body parsing for this route.
 export const config = {
   api: {
     bodyParser: false,
@@ -39,24 +42,48 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Invalid signature" });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      console.log("New subscriber:", session.customer_details?.email);
-      break;
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const email = session.customer_details?.email;
+        const customerId = session.customer;
+
+        if (email) {
+          await supabase.from("subscribers").upsert({
+            email: email.toLowerCase(),
+            stripe_customer_id: customerId,
+            status: "active",
+            updated_at: new Date().toISOString(),
+          });
+          console.log("Subscriber activated:", email);
+        }
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object;
+        const customerId = subscription.customer;
+
+        await supabase
+          .from("subscribers")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("stripe_customer_id", customerId);
+        console.log("Subscriber cancelled, customer:", customerId);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object;
+        console.log("Payment failed for customer:", invoice.customer);
+        break;
+      }
+
+      default:
+        break;
     }
-    case "customer.subscription.deleted": {
-      const subscription = event.data.object;
-      console.log("Subscription cancelled:", subscription.customer);
-      break;
-    }
-    case "invoice.payment_failed": {
-      const invoice = event.data.object;
-      console.log("Payment failed for:", invoice.customer);
-      break;
-    }
-    default:
-      break;
+  } catch (dbErr) {
+    console.error("Database update error:", dbErr);
   }
 
   return res.status(200).json({ received: true });
