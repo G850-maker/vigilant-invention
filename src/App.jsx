@@ -111,23 +111,6 @@ function LandingPage({ onLaunch }) {
         >
           Open the app
         </button>
-<a
-  href="https://buy.stripe.com/3cI28r1DO30Q1dIfANgfu00"
-  style={{
-    background: COLORS.stamp,
-    color: "#fff",
-    textDecoration: "none",
-    border: "none",
-    padding: "10px 20px",
-    borderRadius: 4,
-    fontFamily: "'Inter', sans-serif",
-    fontWeight: 600,
-    fontSize: 14,
-    marginLeft: 12,
-  }}
->
-  Subscribe — $7/mo
-</a>
       </nav>
 
       {/* Hero */}
@@ -209,7 +192,7 @@ function LandingPage({ onLaunch }) {
           >
             {[
               ["3s", "avg. generation"],
-              ["$7","per month,cancel anytime"],
+              ["100%", "free while in beta"],
               ["0", "templates reused"],
             ].map(([n, l]) => (
               <div key={l}>
@@ -308,49 +291,44 @@ function LandingPage({ onLaunch }) {
           fontFamily: "'IBM Plex Mono', monospace",
         }}
       >
-        Outbox.ai — currently free while we learn what's worth paying for.
+        Outbox.ai — $7/month, cancel anytime.
       </footer>
     </div>
   );
 }
 
 function AppView({ onBack }) {
+  const [userEmail, setUserEmail] = useState("");
   const [recipient, setRecipient] = useState("");
   const [offer, setOffer] = useState("");
   const [tone, setTone] = useState("direct");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notSubscribed, setNotSubscribed] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const generate = async () => {
-    if (!recipient.trim() || !offer.trim()) {
-      setError("Fill in who you're writing to and what you're offering.");
+    if (!userEmail.trim() || !recipient.trim() || !offer.trim()) {
+      setError("Fill in your email, who you're writing to, and what you're offering.");
       return;
     }
     setError("");
+    setNotSubscribed(false);
     setLoading(true);
     setEmail("");
     try {
-      const prompt = `Write a cold outreach email.
-
-Recipient details: ${recipient}
-What's being offered: ${offer}
-Tone: ${tone}
-
-Rules:
-- Under 120 words.
-- No generic openers like "I hope this finds you well."
-- One clear, low-friction call to action.
-- Plain language, specific to the recipient details given.
-- Output only the email body text (no subject line, no explanation, no markdown).`;
-
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recipient, offer, tone }),
+        body: JSON.stringify({ email: userEmail, recipient, offer, tone }),
       });
       const data = await response.json();
+
+      if (response.status === 402) {
+        setNotSubscribed(true);
+        return;
+      }
       if (!data.email) throw new Error("empty");
       setEmail(data.email);
     } catch (e) {
@@ -423,7 +401,7 @@ Rules:
           ← Outbox.ai
         </button>
         <div style={{ fontSize: 13, color: "#8A8A80", fontFamily: "'IBM Plex Mono', monospace" }}>
-          beta — free
+          $7/mo
         </div>
       </nav>
 
@@ -450,6 +428,17 @@ Rules:
           >
             Draft a letter
           </h1>
+
+          <div style={{ marginBottom: 18 }}>
+            <label style={labelStyle}>Your email (must be subscribed)</label>
+            <input
+              type="email"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              placeholder="you@example.com"
+              style={inputStyle}
+            />
+          </div>
 
           <div style={{ marginBottom: 18 }}>
             <label style={labelStyle}>Who you're writing to</label>
@@ -501,6 +490,29 @@ Rules:
           {error && (
             <div style={{ color: COLORS.stamp, fontSize: 13, marginBottom: 14 }}>
               {error}
+            </div>
+          )}
+
+          {notSubscribed && (
+            <div
+              style={{
+                background: "#FFF4EE",
+                border: `1px solid ${COLORS.stamp}`,
+                borderRadius: 4,
+                padding: 14,
+                marginBottom: 14,
+                fontSize: 13.5,
+                color: COLORS.charcoal,
+              }}
+            >
+              That email isn't an active subscriber yet.{" "}
+              <a
+                href="https://buy.stripe.com/3cI28r1DO30Q1dIfANgfu00"
+                style={{ color: COLORS.stamp, fontWeight: 600 }}
+              >
+                Subscribe — $7/mo
+              </a>{" "}
+              to start generating.
             </div>
           )}
 
@@ -594,5 +606,3 @@ export default function OutboxAI() {
     <AppView onBack={() => setView("landing")} />
   );
 }
-
-
